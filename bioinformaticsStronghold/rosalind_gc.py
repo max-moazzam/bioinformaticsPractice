@@ -1,59 +1,80 @@
-#Will extract data from a .txt file database and return an object with DNA Tags and Sequences
-
-def numberOfID(nameOfDatabase):
-
-    #Open the file and extract the data
-    file = open(nameOfDatabase, 'r')
-    allData = file.read()
-    file.close()
-
-    #Count how many ID's (all ID's start with '>')
-    howManyID = 0
-    for letter in allData:
-        if letter == ">":
-            howManyID += 1
-
-    return howManyID
-
-totalID = numberOfID('rosalind_gc.txt')
-
-#Create an array of objects to store all ID's and Sequences
-listOfSeq = []
-
-seqStore = {
-    "id": 'notFull',
-    "sequence": ''
-    }
-
-
-file = open('rosalind_gc.txt', 'r')
-
-i=0
-while True:
-    currentLine = file.readline().strip()
-
-    if currentLine == '':
-        break
-    elif currentLine[0] == '>' and len(listOfSeq) > 0:
-        seqStore["sequence"] = "".join(seqStore["sequence"])
-        listOfSeq.append(seqStore)
-        seqStore = {
-            "id": 'notFull',
-            "sequence": ''
-        }
-        seqStore["id"] = currentLine
-    elif currentLine[0] == '>' and len(listOfSeq) == 0:
-        seqStore["id"] = currentLine
-    elif currentLine[0] != '>':
-        seqStore["sequence"] = seqStore["sequence"] + currentLine
+#Parses sequence data and ID from text file into an object
+def parseSeqData(nameOfDatabase):
     
-        
-    #elif currentLine[0] != '>':
- #       listOfSeq[i]["sequence"].append(currentLine)
- #       listOfSeq[i]["sequence"] = "".join(listOfSeq[i]["sequence"])
+    #Open the database
+    file = open(nameOfDatabase, 'r')
 
-#Go through the file line by line, stripping
-#If line starts with a > put that in ID
-#If line does not start with a >, put that in sequence and strip
-#Join all the lines in sequence
-#When a new > is found, make it a new position in the array'''
+    #Set variables
+    firstRun = True #Indicates this is the first run through the following loop
+
+    #Where each sequence tag and sequence will be stored
+    allTags = []
+    allSeqs = []
+
+    #Temporary variable to store each line of the current sequence
+    currentSeq = []
+
+    #Loop will go through each line of the database and organize data into the correct variables
+    while True:
+        #Loops through each line of the database, with the new line character stripped
+        currentLine = file.readline().strip()
+
+        #Last line will be a blank space, will end the loop and append the current sequence to the allSeqs array
+        if currentLine == '':
+            allSeqs.append("".join(currentSeq))
+            break
+
+        #Tags will begin with a '>'
+        #If current line is a tag and is the first run, it will be appended to the allSeqs array
+        #firstRun will be switched to False to indicate it is no longer the first loop
+        elif currentLine[0] == '>' and firstRun == True:
+            allTags.append(currentLine)
+            firstRun = False
+        #If the current line is not a tag each line will be appended to 
+        elif currentLine[0] != '>':
+            currentSeq.append(currentLine)
+        elif currentLine[0] == '>' and firstRun == False:
+            allSeqs.append("".join(currentSeq))
+            currentSeq = []
+            allTags.append(currentLine)
+
+    #Close the file
+    file.close()
+    #Put it all in an object for easier access
+    allData = {
+       "tags": allTags,
+       "sequences": allSeqs
+       }
+
+    return allData
+
+#Takes in an object containing DNA sequences and tags, and prints the largest GC% and its tag
+def findGC(data):
+
+    #Set variables
+    index = -1 #Starts at -1 because first index will be 0
+    highestPercent = 0
+    indexOfHighest = 0
+
+    #Go through each sequence, add up G and C, find highest GC percent and the index of that sequence
+    for sequence in data["sequences"]:
+        index += 1
+
+        count = 0
+        totalBases = len(sequence)
+        #Iterate through each base in the sequence to find the count of 'G' and 'C'
+        for base in sequence:
+            if base == 'G' or base == 'C':
+                count += 1
+        #Find GC percentage
+        gcPercent = (count/totalBases) * 100
+        #Put highest GC percentage and its index to access later
+        if gcPercent > highestPercent:
+            highestPercent = gcPercent
+            indexOfHighest = index
+
+    #Print the tag of the highest GC content (with starting '>' character removed) and highest GC percent
+    print(data["tags"][indexOfHighest][1:] + '\n' + str(highestPercent))
+
+data = parseSeqData('rosalind_gc.txt')
+findGC(data)
